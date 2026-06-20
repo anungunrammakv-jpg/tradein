@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="uk">
 <head>
@@ -9,7 +8,7 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Vue 3 (Без сборщиков и компиляторов, работает напрямую в браузере) -->
+    <!-- Vue 3 -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     
     <style>
@@ -17,7 +16,6 @@
             -webkit-tap-highlight-color: transparent;
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
         }
-        /* Убираем прыжки интерфейса при компиляции Vue */
         [v-cloak] { display: none; }
     </style>
 </head>
@@ -62,7 +60,7 @@
                                     </div>
                                 </div>
 
-                                <!-- ИНПУТ (Циклы заряда) - Бронебойная адаптивность -->
+                                <!-- ИНПУТ (Циклы заряда) -->
                                 <div v-else-if="item.type === 'input'" class="bg-slate-200 shadow-[4px_4px_8px_#94a3b8,-4px_-4px_8px_#ffffff] p-4 mb-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all">
                                     <span class="text-sm md:text-base font-semibold text-slate-800 flex-1">{{ item.text }}</span>
                                     <div class="w-full sm:w-auto shrink-0 flex gap-2">
@@ -124,11 +122,23 @@
                     </div>
                 </div>
 
-                <!-- Кнопка шаринга -->
+                <!-- Кнопка копирования -->
                 <div class="mt-12 mb-2">
-                    <button @click="shareResults" class="w-full py-4 bg-slate-200 shadow-[4px_4px_8px_#94a3b8,-4px_-4px_8px_#ffffff] hover:shadow-[5px_5px_10px_#94a3b8,-5px_-5px_10px_#ffffff] active:shadow-[inset_3px_3px_6px_#94a3b8,inset_-3px_-3px_6px_#ffffff] text-slate-800 font-black text-base md:text-lg uppercase tracking-widest rounded-2xl flex items-center justify-center gap-3 transition-all duration-300">
-                        <svg class="w-6 h-6 text-blue-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-                        Поділитися
+                    <button @click="shareResults" 
+                            :class="isCopied ? 'bg-green-500 text-white shadow-[inset_3px_3px_6px_rgba(0,0,0,0.2)]' : 'bg-slate-200 shadow-[4px_4px_8px_#94a3b8,-4px_-4px_8px_#ffffff] hover:shadow-[5px_5px_10px_#94a3b8,-5px_-5px_10px_#ffffff] active:shadow-[inset_3px_3px_6px_#94a3b8,inset_-3px_-3px_6px_#ffffff] text-slate-800'"
+                            class="w-full py-4 font-black text-base md:text-lg uppercase tracking-widest rounded-2xl flex items-center justify-center gap-3 transition-all duration-300">
+                        
+                        <!-- Иконка обычная -->
+                        <svg v-if="!isCopied" class="w-6 h-6 text-blue-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        
+                        <!-- Иконка успеха -->
+                        <svg v-else class="w-6 h-6 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+
+                        {{ isCopied ? 'Скопійовано!' : 'Скопіювати звіт' }}
                     </button>
                 </div>
 
@@ -142,7 +152,8 @@
 
         createApp({
             setup() {
-                // Инициализация структуры данных
+                const isCopied = ref(false); // Состояние кнопки
+
                 const checklist = ref([
                     { title: 'Візуальний огляд', comment: '', tempComment: '', isEditing: false, items: [
                         { text: 'Царапини, потертості, деформація', type: 'rating', value: null }
@@ -185,13 +196,12 @@
                         { text: 'Вібромотор', type: 'checkbox', isChecked: false }
                     ]},
                     { title: 'Підключення до ПК 3uTools', comment: '', tempComment: '', isEditing: false, items: [
-                        { text: 'Кількість циклів заряду', type: 'input', value: '', tempValue: '', isEditing: true }, // Открыто по умолчанию
+                        { text: 'Кількість циклів заряду', type: 'input', value: '', tempValue: '', isEditing: true },
                         { text: 'Айфон заряджається', type: 'checkbox', isChecked: false },
                         { text: 'Бездротова зарядка', type: 'checkbox', isChecked: false }
                     ]}
                 ]);
 
-                // Логика чекбоксов и радиокнопок
                 const toggleCheck = (group, item) => {
                     if (item.type === 'radio') {
                         group.items.forEach(i => { if (i.radioGroup === item.radioGroup) i.isChecked = false; });
@@ -201,7 +211,6 @@
                     }
                 };
 
-                // Логика инпутов пунктов
                 const startEditing = (item) => { item.tempValue = item.value || ''; item.isEditing = true; };
                 const saveItem = (item) => {
                     if (item.tempValue.trim() !== '') {
@@ -214,7 +223,6 @@
                 };
                 const cancelItem = (item) => { item.isEditing = false; };
 
-                // Логика комментариев блоков
                 const startEditingComment = (group) => { group.tempComment = group.comment || ''; group.isEditing = true; };
                 const saveComment = (group) => {
                     group.comment = group.tempComment.trim();
@@ -222,7 +230,6 @@
                 };
                 const cancelComment = (group) => { group.isEditing = false; };
 
-                // Генератор отчета
                 const shareResults = () => {
                     let text = '📱 Звіт Trade-In\n\n';
 
@@ -241,7 +248,6 @@
                             }
                         });
 
-                        // Выводим группу
                         text += `🔹 ${group.title.toUpperCase()}\n`;
                         text += groupText;
                         if (group.comment && group.comment.trim() !== '') {
@@ -250,22 +256,30 @@
                         text += '\n';
                     });
 
-                    // Отправка
-                    if (navigator.share) {
-                        navigator.share({ title: 'Trade-In Результати', text: text }).catch(() => {});
-                    } else {
-                        const ta = document.createElement("textarea");
-                        ta.value = text;
-                        ta.style.position = "fixed";
-                        document.body.appendChild(ta);
-                        ta.select();
-                        try { document.execCommand('copy'); alert('Дані скопійовано у буфер обміну! Можете вставити їх у месенджер.'); } catch(e) {}
-                        document.body.removeChild(ta);
+                    // Исключительно копирование в буфер
+                    const ta = document.createElement("textarea");
+                    ta.value = text;
+                    ta.style.position = "fixed";
+                    document.body.appendChild(ta);
+                    ta.select();
+                    try { 
+                        document.execCommand('copy'); 
+                        
+                        // Меняем состояние кнопки на 3 секунды
+                        isCopied.value = true;
+                        setTimeout(() => {
+                            isCopied.value = false;
+                        }, 3000);
+
+                    } catch(e) {
+                        console.error('Помилка копіювання', e);
                     }
+                    document.body.removeChild(ta);
                 };
 
                 return {
                     checklist,
+                    isCopied,
                     toggleCheck,
                     startEditing, saveItem, cancelItem,
                     startEditingComment, saveComment, cancelComment,
@@ -276,5 +290,3 @@
     </script>
 </body>
 </html>
-
-
