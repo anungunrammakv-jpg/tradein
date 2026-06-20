@@ -1,0 +1,280 @@
+
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Trade In</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Vue 3 (Без сборщиков и компиляторов, работает напрямую в браузере) -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    
+    <style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+        }
+        /* Убираем прыжки интерфейса при компиляции Vue */
+        [v-cloak] { display: none; }
+    </style>
+</head>
+<body class="bg-slate-500 overflow-x-hidden">
+    <!-- Точка входа Vue -->
+    <div id="app" v-cloak class="min-h-screen flex items-start md:items-center justify-center p-4 md:p-8">
+        
+        <div class="w-full max-w-3xl bg-white/30 backdrop-blur-xl border border-white/40 rounded-[2.5rem] p-4 md:p-10 shadow-2xl flex flex-col my-4 md:my-0">
+            <!-- Заголовок -->
+            <div class="flex justify-center mb-10 shrink-0 pt-2">
+                <div class="bg-slate-200 shadow-[4px_4px_8px_#94a3b8,-4px_-4px_8px_#ffffff] hover:shadow-[5px_5px_10px_#94a3b8,-5px_-5px_10px_#ffffff] transition-all duration-300 rounded-[2rem] py-5 px-10 md:px-14 border border-white/40 text-center w-full sm:w-auto">
+                    <h1 class="text-3xl md:text-5xl font-black text-slate-800 tracking-widest uppercase">Trade In</h1>
+                </div>
+            </div>
+
+            <!-- Основной блок с группами -->
+            <div class="bg-slate-200 shadow-[inset_3px_3px_6px_#94a3b8,inset_-3px_-3px_6px_#ffffff] rounded-3xl p-5 md:p-8 flex-1">
+                <div class="space-y-4">
+                    
+                    <div v-for="group in checklist" :key="group.title" class="mb-10">
+                        <!-- Заголовок группы -->
+                        <div class="bg-slate-200 shadow-[4px_4px_8px_#94a3b8,-4px_-4px_8px_#ffffff] rounded-2xl p-4 mb-6 flex justify-center">
+                            <h3 class="text-base md:text-lg font-extrabold text-slate-800 uppercase tracking-widest opacity-90 text-center">{{ group.title }}</h3>
+                        </div>
+                        
+                        <!-- Пункты проверки -->
+                        <div class="flex flex-col">
+                            <div v-for="item in group.items" :key="item.text">
+                                
+                                <!-- РЕЙТИНГ -->
+                                <div v-if="item.type === 'rating'" class="bg-slate-200 shadow-[4px_4px_8px_#94a3b8,-4px_-4px_8px_#ffffff] p-4 mb-4 rounded-2xl flex flex-col transition-all">
+                                    <div class="text-sm md:text-base font-semibold text-slate-800 mb-4 flex justify-between items-center">
+                                        <span>{{ item.text }}</span>
+                                        <span v-if="item.value" class="text-blue-600 font-bold ml-2 shrink-0">{{ item.value }}/10</span>
+                                    </div>
+                                    <div class="grid grid-cols-5 gap-2 sm:grid-cols-10">
+                                        <button v-for="n in 10" :key="n" @click="item.value = n" 
+                                                :class="item.value === n ? 'bg-blue-500 text-white shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3)]' : 'bg-slate-200 text-slate-700 shadow-[3px_3px_6px_#94a3b8,-3px_-3px_6px_#ffffff] hover:text-blue-600'"
+                                                class="h-10 text-sm font-bold rounded-xl transition-all duration-200 flex items-center justify-center">
+                                            {{ n }}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- ИНПУТ (Циклы заряда) - Бронебойная адаптивность -->
+                                <div v-else-if="item.type === 'input'" class="bg-slate-200 shadow-[4px_4px_8px_#94a3b8,-4px_-4px_8px_#ffffff] p-4 mb-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all">
+                                    <span class="text-sm md:text-base font-semibold text-slate-800 flex-1">{{ item.text }}</span>
+                                    <div class="w-full sm:w-auto shrink-0 flex gap-2">
+                                        <!-- Режим редактирования -->
+                                        <template v-if="item.isEditing || !item.value">
+                                            <input type="text" v-model="item.tempValue" @keydown.enter="saveItem(item)" @keydown.esc="cancelItem(item)" placeholder="Ввести значення..." class="flex-1 w-full sm:w-48 bg-slate-200 text-slate-800 font-medium text-sm md:text-base px-4 py-2 rounded-xl outline-none shadow-[inset_3px_3px_6px_#94a3b8,inset_-3px_-3px_6px_#ffffff] transition-all duration-300">
+                                            <button @click="saveItem(item)" class="bg-blue-500 hover:bg-blue-400 text-white px-4 py-2 rounded-xl shadow-[2px_2px_4px_#94a3b8,-2px_-2px_4px_#ffffff] font-bold active:shadow-[inset_2px_2px_4px_rgba(0,0,0,0.3)] shrink-0 transition-all">OK</button>
+                                        </template>
+                                        <!-- Режим чтения -->
+                                        <template v-else>
+                                            <div @click="startEditing(item)" class="cursor-pointer bg-slate-200 text-slate-700 font-medium text-sm md:text-base px-4 py-2 rounded-xl shadow-[3px_3px_6px_#94a3b8,-3px_-3px_6px_#ffffff] hover:shadow-[inset_2px_2px_4px_rgba(0,0,0,0.1)] flex items-center gap-3 w-full sm:w-auto transition-all">
+                                                <span class="truncate flex-1">{{ item.value }}</span>
+                                                <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                <!-- ЧЕКБОКС / РАДИО -->
+                                <div v-else @click="toggleCheck(group, item)" 
+                                     :class="item.isChecked ? 'bg-slate-200 shadow-[inset_3px_3px_6px_#94a3b8,inset_-3px_-3px_6px_#ffffff]' : 'bg-slate-200 shadow-[4px_4px_8px_#94a3b8,-4px_-4px_8px_#ffffff] hover:shadow-[5px_5px_10px_#94a3b8,-5px_-5px_10px_#ffffff]'"
+                                     class="flex items-center justify-between p-4 mb-4 rounded-2xl cursor-pointer transition-all duration-300">
+                                    <span :class="item.isChecked ? 'text-slate-400' : 'text-slate-700'" class="text-sm md:text-base font-medium pr-4 transition-colors">{{ item.text }}</span>
+                                    <div :class="item.isChecked ? 'bg-blue-500 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.3)]' : 'bg-slate-200 shadow-[3px_3px_6px_#94a3b8,-3px_-3px_6px_#ffffff]'" class="w-8 h-8 shrink-0 rounded-full flex items-center justify-center transition-all">
+                                        <svg v-if="item.isChecked" class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- КОММЕНТАРИЙ К БЛОКУ -->
+                        <div class="mt-1 w-full flex justify-start pl-1">
+                            <div class="w-full sm:w-auto flex gap-2">
+                                <template v-if="group.isEditing || (group.comment && group.comment !== '')">
+                                    <!-- Режим редактирования комментария -->
+                                    <template v-if="group.isEditing">
+                                        <input type="text" v-model="group.tempComment" @keydown.enter="saveComment(group)" @keydown.esc="cancelComment(group)" placeholder="Написати коментар..." class="flex-1 w-full sm:w-64 bg-slate-200 text-slate-800 font-medium text-sm md:text-base px-4 py-2 rounded-xl outline-none shadow-[inset_3px_3px_6px_#94a3b8,inset_-3px_-3px_6px_#ffffff] transition-all duration-300">
+                                        <button @click="saveComment(group)" class="bg-blue-500 hover:bg-blue-400 text-white px-4 py-2 rounded-xl shadow-[2px_2px_4px_#94a3b8,-2px_-2px_4px_#ffffff] font-bold active:shadow-[inset_2px_2px_4px_rgba(0,0,0,0.3)] shrink-0 transition-all">OK</button>
+                                    </template>
+                                    <!-- Режим чтения комментария -->
+                                    <template v-else>
+                                        <div @click="startEditingComment(group)" class="cursor-pointer bg-slate-200 text-slate-700 font-medium text-sm md:text-base px-4 py-2 rounded-xl shadow-[3px_3px_6px_#94a3b8,-3px_-3px_6px_#ffffff] hover:shadow-[inset_2px_2px_4px_rgba(0,0,0,0.1)] flex items-center gap-3 w-full sm:w-auto transition-all">
+                                            <span class="truncate flex-1">💬 {{ group.comment }}</span>
+                                            <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                        </div>
+                                    </template>
+                                </template>
+                                <!-- Кнопка добавить комментарий -->
+                                <template v-else>
+                                    <button @click="startEditingComment(group)" class="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-blue-600 transition-colors w-fit px-1 py-1 rounded-md">
+                                        <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+                                        Додати коментар
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Кнопка шаринга -->
+                <div class="mt-12 mb-2">
+                    <button @click="shareResults" class="w-full py-4 bg-slate-200 shadow-[4px_4px_8px_#94a3b8,-4px_-4px_8px_#ffffff] hover:shadow-[5px_5px_10px_#94a3b8,-5px_-5px_10px_#ffffff] active:shadow-[inset_3px_3px_6px_#94a3b8,inset_-3px_-3px_6px_#ffffff] text-slate-800 font-black text-base md:text-lg uppercase tracking-widest rounded-2xl flex items-center justify-center gap-3 transition-all duration-300">
+                        <svg class="w-6 h-6 text-blue-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                        Поділитися
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Логика Vue 3 -->
+    <script>
+        const { createApp, ref } = Vue;
+
+        createApp({
+            setup() {
+                // Инициализация структуры данных
+                const checklist = ref([
+                    { title: 'Візуальний огляд', comment: '', tempComment: '', isEditing: false, items: [
+                        { text: 'Царапини, потертості, деформація', type: 'rating', value: null }
+                    ]},
+                    { title: 'Кнопки', comment: '', tempComment: '', isEditing: false, items: [
+                        { text: 'Гучність', type: 'checkbox', isChecked: false },
+                        { text: 'Блокування', type: 'checkbox', isChecked: false },
+                        { text: 'Action Button', type: 'checkbox', isChecked: false }
+                    ]},
+                    { title: 'Дисплей, сенсор', comment: '', tempComment: '', isEditing: false, items: [
+                        { text: 'Затискаємо іконку та переміщуємо її по всьому екрану (не ок, якщо вона відпадає самовільно)', type: 'checkbox', isChecked: false },
+                        { text: 'True Tone', type: 'checkbox', isChecked: false },
+                        { text: 'Яскравість', type: 'checkbox', isChecked: false },
+                        { text: 'Вигорання', type: 'checkbox', isChecked: false }
+                    ]},
+                    { title: 'Налаштування', comment: '', tempComment: '', isEditing: false, items: [
+                        { text: 'Перевірка розділу «про пристрій» (Не повинно бути помилок про заміну)', type: 'checkbox', isChecked: false },
+                        { text: 'Акумулятор: 80-90%', type: 'radio', radioGroup: 'battery', isChecked: false },
+                        { text: 'Акумулятор: 70-80%', type: 'radio', radioGroup: 'battery', isChecked: false },
+                        { text: 'Акумулятор: нижче 70% (труп)', type: 'radio', radioGroup: 'battery', isChecked: false }
+                    ]},
+                    { title: 'Face ID', comment: '', tempComment: '', isEditing: false, items: [
+                        { text: 'Face ID', type: 'checkbox', isChecked: false }
+                    ]},
+                    { title: 'Камера', comment: '', tempComment: '', isEditing: false, items: [
+                        { text: 'Перемикання між всіма камерами та режимами плавне', type: 'checkbox', isChecked: false },
+                        { text: 'Спалах', type: 'checkbox', isChecked: false }
+                    ]},
+                    { title: 'Зв’язок', comment: '', tempComment: '', isEditing: false, items: [
+                        { text: 'Wi-Fi', type: 'checkbox', isChecked: false },
+                        { text: 'Bluetooth', type: 'checkbox', isChecked: false },
+                        { text: 'GPS', type: 'checkbox', isChecked: false },
+                        { text: 'NFC', type: 'checkbox', isChecked: false },
+                        { text: 'Мобільна мережа', type: 'checkbox', isChecked: false }
+                    ]},
+                    { title: 'Звук', comment: '', tempComment: '', isEditing: false, items: [
+                        { text: 'Верхній/нижній динамік', type: 'checkbox', isChecked: false },
+                        { text: 'Датчик зближення', type: 'checkbox', isChecked: false },
+                        { text: 'Мікрофон нижній/верхній на відео', type: 'checkbox', isChecked: false },
+                        { text: 'Вібромотор', type: 'checkbox', isChecked: false }
+                    ]},
+                    { title: 'Підключення до ПК 3uTools', comment: '', tempComment: '', isEditing: false, items: [
+                        { text: 'Кількість циклів заряду', type: 'input', value: '', tempValue: '', isEditing: true }, // Открыто по умолчанию
+                        { text: 'Айфон заряджається', type: 'checkbox', isChecked: false },
+                        { text: 'Бездротова зарядка', type: 'checkbox', isChecked: false }
+                    ]}
+                ]);
+
+                // Логика чекбоксов и радиокнопок
+                const toggleCheck = (group, item) => {
+                    if (item.type === 'radio') {
+                        group.items.forEach(i => { if (i.radioGroup === item.radioGroup) i.isChecked = false; });
+                        item.isChecked = true;
+                    } else {
+                        item.isChecked = !item.isChecked;
+                    }
+                };
+
+                // Логика инпутов пунктов
+                const startEditing = (item) => { item.tempValue = item.value || ''; item.isEditing = true; };
+                const saveItem = (item) => {
+                    if (item.tempValue.trim() !== '') {
+                        item.value = item.tempValue.trim();
+                        item.isEditing = false;
+                    } else {
+                        item.value = '';
+                        item.isEditing = false;
+                    }
+                };
+                const cancelItem = (item) => { item.isEditing = false; };
+
+                // Логика комментариев блоков
+                const startEditingComment = (group) => { group.tempComment = group.comment || ''; group.isEditing = true; };
+                const saveComment = (group) => {
+                    group.comment = group.tempComment.trim();
+                    group.isEditing = false;
+                };
+                const cancelComment = (group) => { group.isEditing = false; };
+
+                // Генератор отчета
+                const shareResults = () => {
+                    let text = '📱 Звіт Trade-In\n\n';
+
+                    checklist.value.forEach(group => {
+                        let groupText = '';
+
+                        group.items.forEach(item => {
+                            if (item.type === 'checkbox' || item.type === 'radio') {
+                                groupText += item.isChecked ? `✅ ${item.text}\n` : `❌ ${item.text}\n`;
+                            } else if (item.type === 'rating') {
+                                groupText += item.value ? `⭐ ${item.text}: ${item.value}/10\n` : `⭐ ${item.text}: Не оцінено\n`;
+                            } else if (item.type === 'input') {
+                                if (item.value && item.value.trim() !== '') {
+                                    groupText += `📝 ${item.text}: ${item.value}\n`;
+                                }
+                            }
+                        });
+
+                        // Выводим группу
+                        text += `🔹 ${group.title.toUpperCase()}\n`;
+                        text += groupText;
+                        if (group.comment && group.comment.trim() !== '') {
+                            text += `💬 Коментар: ${group.comment}\n`;
+                        }
+                        text += '\n';
+                    });
+
+                    // Отправка
+                    if (navigator.share) {
+                        navigator.share({ title: 'Trade-In Результати', text: text }).catch(() => {});
+                    } else {
+                        const ta = document.createElement("textarea");
+                        ta.value = text;
+                        ta.style.position = "fixed";
+                        document.body.appendChild(ta);
+                        ta.select();
+                        try { document.execCommand('copy'); alert('Дані скопійовано у буфер обміну! Можете вставити їх у месенджер.'); } catch(e) {}
+                        document.body.removeChild(ta);
+                    }
+                };
+
+                return {
+                    checklist,
+                    toggleCheck,
+                    startEditing, saveItem, cancelItem,
+                    startEditingComment, saveComment, cancelComment,
+                    shareResults
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
+
+
